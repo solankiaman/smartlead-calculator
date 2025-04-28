@@ -1,6 +1,7 @@
 export async function sendAuditEvent(event) {
     try {
-      await fetch('http://localhost:5000/audit-log', {  // ✅ local backend
+      const BASE_URL = 'https://smartlead-backend.onrender.com/audit-log';
+      await fetch(BASE_URL, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(event)
