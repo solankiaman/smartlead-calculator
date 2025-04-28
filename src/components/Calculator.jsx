@@ -11,23 +11,21 @@ const Calculator = () => {
 
   // Function to handle number and operator button clicks
   const handleButtonClick = (value) => {
-    // Convert custom symbols (x, ÷) to JS operators (*, /)
     const translatedValue = value === 'x' ? '*' : value === '÷' ? '/' : value;
-
     let newInput = '';
 
-    // If last button was "=", start from result if next is an operator
     if (lastWasEquals && ['+', '-', '*', '/'].includes(translatedValue)) {
+      // Continue with result but clear it from display
       newInput = `${result}${translatedValue}`;
+      setResult(''); // Clear result for clean new chain
     } else {
       newInput = input + translatedValue;
     }
 
-    // Update the input and reset equals flag
     setInput(newInput);
     setLastWasEquals(false);
 
-    // Send button press as audit log
+    // Send audit log
     sendAuditEvent({
       id: eventId,
       timestamp: Date.now(),
@@ -35,17 +33,16 @@ const Calculator = () => {
       value: value
     });
 
-    setEventId(eventId + 1); // Increase event ID
+    setEventId(eventId + 1);
   };
 
   // Function to calculate the result when "=" is pressed
   const handleCalculate = () => {
     try {
-      const evalResult = eval(input); // Calculate using JS eval
-      setResult(evalResult);          // Set result
-      setLastWasEquals(true);         // Mark that = was pressed
+      const evalResult = eval(input);
+      setResult(evalResult);
+      setLastWasEquals(true);
 
-      // Send audit log for "="
       sendAuditEvent({
         id: eventId,
         timestamp: Date.now(),
@@ -65,7 +62,6 @@ const Calculator = () => {
     setResult('');
     setLastWasEquals(false);
 
-    // Log Clear action
     sendAuditEvent({
       id: eventId,
       timestamp: Date.now(),
@@ -100,9 +96,9 @@ const Calculator = () => {
               }`}
               onClick={() => {
                 if (btn === '=') {
-                  handleCalculate(); // "=" clicked
+                  handleCalculate();
                 } else {
-                  handleButtonClick(btn); // number/operator clicked
+                  handleButtonClick(btn);
                 }
               }}
             >
