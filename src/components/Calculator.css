@@ -1,0 +1,87 @@
+/* Base button */
+.button {
+    padding: 15px;
+    font-size: 35px;
+    border: none;
+    border-radius: 10px;
+    color: #6f6c6c;
+    font-weight: 700;
+    background-color: #dbd2d2b0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  /* Operator Colors */
+  .plus {
+    background-color: #00bcd4; /* Cyan */
+    color: #fff;
+  }
+  .minus {
+    background-color: #ff7043; /* Orange */
+    color: #fff;
+  }
+  .multiply {
+    background-color: #ab47bc; /* Purple */
+    color: #fff;
+  }
+  .divide {
+    background-color: #4caf50; /* Green */
+    color: #fff;
+  }
+  .divide:hover {
+    background-color: #d32f2f;
+  }
+  
+  .button:hover {
+    background-color: #ccc;
+  }
+  
+  /* Display + layout as before */
+  .display {
+    height: 60px;
+    background-color: #87CEEB;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    padding: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: #333;
+    overflow-x: auto;
+  }
+  
+  .calculator {
+    width: 320px;
+    padding: 25px;
+    border-radius: 15px;
+    background-color: #d2f1fa;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.1);
+  }
+  
+  .button-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background-color: #f1f5f9;
+  }
+  .clear {
+    grid-column: span 4;
+    background-color: #f44336;
+    color: white;
+    font-size: 20px;
+  }
+  .clear:hover {
+    background-color: #d32f2f;
+  }
+  
