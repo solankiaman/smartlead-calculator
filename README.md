@@ -30,7 +30,7 @@ This is a fully functional calculator web app built using **React + Vite**, with
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/solankiaman520/smartlead-calculator.git
+git clone https://github.com/solankiaman/smartlead-calculator.git
 cd smartlead-calculator
 
 npm install
