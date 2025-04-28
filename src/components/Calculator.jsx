@@ -3,64 +3,89 @@ import './Calculator.css';
 import { sendAuditEvent } from '../services/api';
 
 const Calculator = () => {
-  // States for input, result, event tracking
   const [input, setInput] = useState('');
   const [result, setResult] = useState('');
   const [eventId, setEventId] = useState(1);
-  const [lastWasEquals, setLastWasEquals] = useState(false); // to check if last action was '='
+  const [lastWasEquals, setLastWasEquals] = useState(false);
+  const [numberBuffer, setNumberBuffer] = useState(''); // To accumulate full numbers
 
-  // Function to handle number and operator button clicks
+  // Function to flush accumulated number buffer into audit event
+  const flushNumberBuffer = async () => {
+    if (numberBuffer !== '') {
+      await sendAuditEvent({
+        id: eventId,
+        timestamp: Date.now(),
+        action: "numberEntered",
+        value: numberBuffer
+      });
+      setEventId(prev => prev + 1);
+      setNumberBuffer('');
+    }
+  };
+
+  // Function to handle all button clicks
   const handleButtonClick = (value) => {
     const translatedValue = value === 'x' ? '*' : value === '÷' ? '/' : value;
     let newInput = '';
 
     if (lastWasEquals && ['+', '-', '*', '/'].includes(translatedValue)) {
-      // Continue with result but clear it from display
+      // After equals and operator pressed -> continue with result
       newInput = `${result}${translatedValue}`;
-      setResult(''); // Clear result for clean new chain
+      setInput(newInput);
+      setResult(''); 
+      setLastWasEquals(false);
+    } else if (lastWasEquals) {
+      // After equals and number pressed -> start fresh
+      newInput = translatedValue;
+      setInput(newInput);
+      setResult('');
+      setLastWasEquals(false);
     } else {
       newInput = input + translatedValue;
+      setInput(newInput);
     }
 
-    setInput(newInput);
-    setLastWasEquals(false);
-
-    // Send audit log
-    sendAuditEvent({
-      id: eventId,
-      timestamp: Date.now(),
-      action: isNaN(translatedValue) && translatedValue !== '.' ? "operatorEntered" : "numberEntered",
-      value: value
-    });
-
-    setEventId(eventId + 1);
+    // Handle audit logging
+    if (['+', '-', '*', '/'].includes(translatedValue)) {
+      flushNumberBuffer();
+      sendAuditEvent({
+        id: eventId + 1,
+        timestamp: Date.now(),
+        action: "operatorEntered",
+        value: value
+      });
+      setEventId(prev => prev + 2);
+    } else if (value === '=') {
+      flushNumberBuffer();
+      sendAuditEvent({
+        id: eventId + 1,
+        timestamp: Date.now(),
+        action: "equalsPressed",
+        value: "="
+      });
+      setEventId(prev => prev + 2);
+    } else {
+      setNumberBuffer(prev => prev + value);
+    }
   };
 
-  // Function to calculate the result when "=" is pressed
+  // Function to calculate result when '=' pressed
   const handleCalculate = () => {
     try {
       const evalResult = eval(input);
       setResult(evalResult);
       setLastWasEquals(true);
-
-      sendAuditEvent({
-        id: eventId,
-        timestamp: Date.now(),
-        action: "equalsPressed",
-        value: "="
-      });
-
-      setEventId(eventId + 1);
     } catch (error) {
-      setResult('Error'); // If invalid input
+      setResult('Error');
     }
   };
 
-  // Function to reset everything when Clear is clicked
+  // Function to clear everything when "Clear" pressed
   const handleClear = () => {
     setInput('');
     setResult('');
     setLastWasEquals(false);
+    setNumberBuffer('');
 
     sendAuditEvent({
       id: eventId,
@@ -68,8 +93,7 @@ const Calculator = () => {
       action: "clearPressed",
       value: "clear"
     });
-
-    setEventId(eventId + 1);
+    setEventId(prev => prev + 1);
   };
 
   return (
@@ -81,9 +105,9 @@ const Calculator = () => {
           <div>{result}</div>
         </div>
 
-        {/* All calculator buttons */}
+        {/* Buttons */}
         <div className="button-grid">
-          {['7','8','9','+','4','5','6','-','1','2','3','x','0','.','=','÷'].map((btn) => (
+          {['7', '8', '9', '+', '4', '5', '6', '-', '1', '2', '3', 'x', '0', '.', '=', '÷'].map((btn) => (
             <button
               key={btn}
               className={`button ${
@@ -91,22 +115,20 @@ const Calculator = () => {
                 btn === '-' ? 'minus' :
                 btn === 'x' ? 'multiply' :
                 btn === '÷' ? 'divide' :
-                btn === '=' ? 'equals' :
-                ''
+                btn === '=' ? 'equals' : ''
               }`}
               onClick={() => {
                 if (btn === '=') {
                   handleCalculate();
-                } else {
-                  handleButtonClick(btn);
                 }
+                handleButtonClick(btn);
               }}
             >
               {btn}
             </button>
           ))}
 
-          {/* Clear button */}
+          {/* Clear Button */}
           <button className="button clear" onClick={handleClear}>Clear</button>
         </div>
       </div>
