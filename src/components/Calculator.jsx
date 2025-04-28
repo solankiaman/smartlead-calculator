@@ -3,37 +3,30 @@ import './Calculator.css';
 import { sendAuditEvent } from '../services/api';
 
 const Calculator = () => {
-    
-  // States to manage input, result, audit event id, last action, and number accumulation
+  // States to manage input, result, and audit logging behavior
   const [input, setInput] = useState('');
   const [result, setResult] = useState('');
-  const [eventId, setEventId] = useState(1);
-  const [lastWasEquals, setLastWasEquals] = useState(false);
-  const [numberBuffer, setNumberBuffer] = useState('');
+  const [lastWasEquals, setLastWasEquals] = useState(false); // To track if last action was '='
+  const [numberBuffer, setNumberBuffer] = useState('');       // To accumulate full numbers
 
-  // Function to send accumulated number as a single audit event
-  const flushNumberBuffer = async (localEventId) => {
+  // Flush accumulated numberBuffer into audit log
+  const flushNumberBuffer = async () => {
     if (numberBuffer !== '') {
       await sendAuditEvent({
-        id: localEventId,
         timestamp: Date.now(),
         action: "numberEntered",
         value: numberBuffer
       });
-      setNumberBuffer('');
-      return 1; // 1 event was sent
+      setNumberBuffer(''); // Reset buffer after sending
     }
-    return 0; // no event sent
   };
 
-  // Function to handle number/operator button click (except '=')
+  // Handle click for number and operator buttons
   const handleButtonClick = async (value) => {
-    let localEventId = eventId; // Start from current eventId
-
     const translatedValue = value === 'x' ? '*' : value === '÷' ? '/' : value;
     let newInput = '';
 
-    // Smart handling after '=' was pressed
+    // If last action was '=', start new calculation
     if (lastWasEquals && ['+', '-', '*', '/'].includes(translatedValue)) {
       newInput = `${result}${translatedValue}`;
       setInput(newInput);
@@ -48,92 +41,78 @@ const Calculator = () => {
       newInput = input + translatedValue;
       setInput(newInput);
     }
-    
-    // Handle audit events
+
+    // If operator button clicked, flush numberBuffer and log operator
     if (['+', '-', '*', '/'].includes(translatedValue)) {
-      const flushed = await flushNumberBuffer(localEventId);
-      localEventId += flushed;
+      await flushNumberBuffer();
       await sendAuditEvent({
-        id: localEventId,
         timestamp: Date.now(),
         action: "operatorEntered",
         value: value
       });
-      localEventId += 1;
-      setEventId(localEventId); // Update after all
-    } else if (value === '=') {
-      // No audit from here, handled in handleCalculate()
-    } else {
-      // Keep accumulating number in buffer
+    } 
+    // Ignore '=' here, '=' is handled separately in handleCalculate
+    else if (value === '=') {
+      // Do nothing here
+    } 
+    // If number or '.' clicked, keep accumulating in numberBuffer
+    else {
       setNumberBuffer(prev => prev + value);
     }
   };
 
-  // Function to handle '=' button click and result calculation
+  // Handle '=' button: Calculate result and send audit logs
   const handleCalculate = async () => {
     try {
-      let localEventId = eventId; // Start from current eventId
+      await flushNumberBuffer(); // Flush pending number first
 
-      const flushed = await flushNumberBuffer(localEventId);
-      localEventId += flushed;
-
-      const evalResult = eval(input);
+      const evalResult = eval(input); // Evaluate expression
       setResult(evalResult);
       setLastWasEquals(true);
 
-      // Send equals pressed event
+      // Log '=' pressed event
       await sendAuditEvent({
-        id: localEventId,
         timestamp: Date.now(),
         action: "equalsPressed",
         value: "="
       });
-      localEventId += 1;
 
-      // Send calculated result as a new audit event
+      // Log calculated result event
       await sendAuditEvent({
-        id: localEventId,
         timestamp: Date.now(),
         action: "resultCalculated",
         value: String(evalResult)
       });
-      localEventId += 1;
-
-      setEventId(localEventId); // Update after all
     } catch (error) {
-      setResult('Error');
+      setResult('Error'); // If evaluation fails, show Error
     }
   };
 
-  // Function to clear calculator and reset everything
+  // Handle Clear button: Reset everything
   const handleClear = async () => {
-    let localEventId = eventId;
-
     setInput('');
     setResult('');
     setLastWasEquals(false);
     setNumberBuffer('');
-    
-    // Send clear pressed event
+
+    // Log clear action
     await sendAuditEvent({
-      id: localEventId,
       timestamp: Date.now(),
       action: "clearPressed",
       value: "clear"
     });
-    localEventId += 1;
-
-    setEventId(localEventId);
   };
 
   return (
     <div className="container">
       <div className="calculator">
+        {/* Display current input and result */}
         <div className="display">
           <div>{input}</div>
           <div>{result}</div>
         </div>
 
+        {/* Grid of calculator buttons */}
         <div className="button-grid">
           {['7', '8', '9', '+', '4', '5', '6', '-', '1', '2', '3', 'x', '0', '.', '=', '÷'].map((btn) => (
             <button
@@ -147,16 +126,16 @@ const Calculator = () => {
               }`}
               onClick={async () => {
                 if (btn === '=') {
-                  await handleCalculate();
+                  await handleCalculate();  // '=' clicked
                 } else {
-                  await handleButtonClick(btn);
+                  await handleButtonClick(btn); // Number or operator clicked
                 }
               }}
             >
               {btn}
             </button>
           ))}
-
+          {/* Clear Button */}
           <button className="button clear" onClick={handleClear}>Clear</button>
         </div>
       </div>
